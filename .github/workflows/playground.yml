@@ -1,9 +1,18 @@
+name: Action Playground CI/CD
+
 on: push
 
 jobs:
   npm-build:
+    name: npm build 
     runs-on: ubuntu-latest
+
     steps:
-    - uses: actions/checkout@v4
-    - run: npm install
-    - run: npm run build
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install dependencies
+      run: npm install
+
+    - name: Build the app
+      run: npm run build
