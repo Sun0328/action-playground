@@ -1,70 +1,120 @@
-# Getting Started with Create React App
+# Github Actions with React App
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+The static page was deployed with github-pages-deploy-action@v4 [Page](https://github.com/Sun0328/action-playground/deployments/github-pages).
 
-## Available Scripts
+Action name: pages build and deployment
+![screenshot](screenshot-action1.png)
 
-In the project directory, you can run:
+# Actions Workflow
+![workflow](workflow.png)
 
-### `npm start`
+Core concept of Actions: Define automatic jobs after specific action (e.g. push, merge)
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## Workflow Name
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+**`name: CI/CD with Docker & GitHub Pages`**  
+- This is the name of the workflow in the GitHub Actions.
 
-### `npm test`
+---
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Trigger
 
-### `npm run build`
+**`on: push`**  
+- The workflow is triggered every time you push code to the repository.  
+- You can also trigger workflows on `pull_request`, `schedule`, or other events.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+---
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## Steps
+#### 1. Checkout Code
+```yaml
+- name: Checkout code
+  uses: actions/checkout@v4
+```
+Uses the official checkout action to pull your repository code into the runner.
+This is required for all subsequent steps.
+#### 2. Install Dependencies & Build
+```yaml
+- name: Install dependencies & build
+  run: |
+    npm install
+    npm run build
+```
+Runs shell commands to:
+Install project dependencies (npm install)
+Build the project (npm run build), generating a build folder with static files.
+#### 3. Deploy to GitHub Pages
+```yaml
+- name: Deploy to Github Pages
+  uses: JamesIves/github-pages-deploy-action@v4
+  with:
+    branch: gh-pages
+    folder: build
+```
+Uses the github-pages-deploy-action to deploy the built files to GitHub Pages.
+branch: gh-pages → The branch where the site is published.
+folder: build → The folder containing the generated static files.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+# Docker CI/CD Workflow: Build & Push Image
 
-### `npm run eject`
+This GitHub Actions workflow automatically builds a Docker image from your repository and pushes it to Docker Hub whenever you push code.
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+---
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## Workflow Name
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+**`name: Build the image and push it to Docker Hub`**  
+- This is the workflow title displayed in the GitHub Actions UI.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+---
 
-## Learn More
+## Trigger
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+**`on: push`**  
+- The workflow is triggered on every push to the repository.  
+- You can also trigger it on `pull_request`, `schedule`, or other events.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+---
 
-### Code Splitting
+## Jobs
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+### `npm-build`
 
-### Analyzing the Bundle Size
+```yaml
+npm-build:
+  name: npm build
+  runs-on: ubuntu-latest
+```
+Job ID: npm-build (used internally).
+Display Name: npm build.
+Runner: ubuntu-latest (GitHub's latest Ubuntu VM).
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+### Steps
+#### 1. Login to Docker Hub
+```yaml
+- name: Login to Docker Hub
+  uses: docker/login-action@v3
+  with:
+    username: ${{ secrets.DOCKER_HUB_USERNAME }}
+    password: ${{ secrets.DOCKER_HUB_TOKEN }}
+```
+Secrets:（repo/Setting/Secrets and variables/Actions/Repository secrets）
+DOCKER_HUB_USERNAME → Your Docker Hub username
+DOCKER_HUB_TOKEN → Your Docker Hub access token
+Authentication is required before pushing images.
+Docker hub -> setting -> Personal access token
 
-### Making a Progressive Web App
+#### 2. Build Image and Push to Docker Hub
+```yaml
+- name: Build image and push to Docker Hub
+  uses: docker/build-push-action@v5
+  with:
+    push: true
+    tags: ${{ secrets.DOCKER_HUB_USERNAME }}/action-playground:latest
+```
+Uses Docker's build-push action to:
+Build the Docker image from your repository.
+Push it to Docker Hub (push: true).
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Tags:
+The image is tagged as username/action-playground:latest using your Docker Hub username from secrets.
