@@ -1,48 +1,92 @@
-name: Build the image and push it to Docker Hub
+# GitHub Actions workflow for React app build and test
+name: Build and Test React App
+
+# Trigger: Run on every push to any branch
 on: push
 
 jobs:
-  npm-build:
-    name: npm build 
+  # Job 1: Build and Test
+  build-and-test:
+    name: Build and Test
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      # Step 1: Checkout the repository code
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Login to Docker Hub
-      uses: docker/login-action@v3
-      with:
-        username: ${{ secrets.DOCKER_HUB_USERNAME }}
-        password: ${{ secrets.DOCKER_HUB_TOKEN }}
-    
-    - name: Build image and push to Docker Hub
-      uses: docker/build-push-action@v5
-      with:
-        push: true
-        tags: ${{ secrets.DOCKER_HUB_USERNAME }}/action-playground:latest
-    
+      # Step 2: Setup Node.js environment
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
 
-# name: Action Playground CI/CD
+      # Step 3: Install project dependencies
+      - name: Install dependencies
+        run: npm ci
+
+      # Step 4: Run tests with Jest
+      - name: Run tests
+        run: npm test -- --coverage --watchAll=false
+
+      # Step 5: Build the React application
+      - name: Build application
+        run: npm run build
+
+      # Step 6: Upload build artifacts (optional)
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-files
+          path: build/
+# ========== COMMENTED OUT WORKFLOWS ==========
+# Previous Docker workflow (commented out)
+# name: Build the image and push it to Docker Hub
 # on: push
-
-# permissions:
-#   contents: write
-
+#
 # jobs:
 #   npm-build:
-#     name: npm build 
+#     name: npm build
 #     runs-on: ubuntu-latest
-
+#
 #     steps:
 #     - name: Checkout code
 #       uses: actions/checkout@v4
+#
+#     - name: Login to Docker Hub
+#       uses: docker/login-action@v3
+#       with:
+#         username: ${{ secrets.DOCKER_HUB_USERNAME }}
+#         password: ${{ secrets.DOCKER_HUB_TOKEN }}
+#
+#     - name: Build image and push to Docker Hub
+#       uses: docker/build-push-action@v5
+#       with:
+#         push: true
+#         tags: ${{ secrets.DOCKER_HUB_USERNAME }}/action-playground:latest
 
+# Previous GitHub Pages deployment workflow (commented out)
+# name: Action Playground CI/CD
+# on: push
+#
+# permissions:
+#   contents: write
+#
+# jobs:
+#   npm-build:
+#     name: npm build
+#     runs-on: ubuntu-latest
+#
+#     steps:
+#     - name: Checkout code
+#       uses: actions/checkout@v4
+#
 #     - name: Install dependencies & build
 #       run: |
 #         npm install
 #         npm run build
-
+#
 #     - name: Deploy to Github Pages
 #       uses: JamesIves/github-pages-deploy-action@v4
 #       with:
