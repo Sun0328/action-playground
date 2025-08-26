@@ -23,6 +23,96 @@
   color: #61dafb;
 }
 
+.button-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.animated-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 32px;
+  margin-top: 20px;
+  background: linear-gradient(
+    45deg,
+    #61dafb,
+    #21a9d8,
+    #1e88e5,
+    #61dafb
+  );
+  background-size: 300% 300%;
+  border: none;
+  border-radius: 12px;
+  color: white;
+  font-size: 18px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(97, 218, 251, 0.2);
+  transform-style: preserve-3d;
+  perspective: 1000px;
+}
+
+.animated-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  transition: left 0.6s ease;
+}
+
+.animated-button:hover::before {
+  left: 100%;
+}
+
+.button-text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 2;
+  position: relative;
+}
+
+.button-arrow {
+  margin-left: 8px;
+  font-size: 20px;
+  font-weight: bold;
+  z-index: 2;
+  position: relative;
+}
+
+.animated-button::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.6s ease, height 0.6s ease;
+}
+
+.animated-button:active::after {
+  width: 300px;
+  height: 300px;
+}
+
 @keyframes App-logo-spin {
   from {
     transform: rotate(0deg);
