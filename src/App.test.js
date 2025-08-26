@@ -132,7 +132,8 @@ describe("App Component Tests", () => {
 
       // Check arrow symbols exist (one for each button)
       const arrows = screen.getAllByText("→");
-      expect(arrows).toHaveLength(2);
+      // INTENTIONALLY FAILING TEST: Expect 3 arrows instead of 2
+      expect(arrows).toHaveLength(3); // This will fail since there are only 2 arrows
     });
   });
 

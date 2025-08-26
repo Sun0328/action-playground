@@ -37,10 +37,11 @@ jobs:
           name: coverage-report
           path: coverage/
 
-  # Job 2: Build Application
+  # Job 2: Build Application (only runs if tests pass)
   build:
     name: Build Application
     runs-on: ubuntu-latest
+    needs: test # This job depends on the 'test' job completing successfully
 
     steps:
       # Step 1: Checkout the repository code
