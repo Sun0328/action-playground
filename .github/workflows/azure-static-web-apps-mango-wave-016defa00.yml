@@ -1,0 +1,208 @@
+name: CI/CD to Azure Static Web Apps
+
+on:
+  push:
+    branches: [main] # Deploy only on main branch
+  pull_request: # PR will run tests/build and trigger SWA preview environment
+    types: [opened, synchronize, reopened, closed]
+    branches: [main]
+
+# Prevent concurrent deployments from overwriting each other
+concurrency:
+  group: deploy-swa-main
+  cancel-in-progress: true
+
+jobs:
+  # 1) Run Tests
+  tests:
+    name: Run Jest tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+      - run: npm ci
+      - run: CI=true npm test -- --coverage --watchAll=false
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+
+  # 2) Build application (to catch build errors early; SWA will still build again per config)
+  build:
+    name: Build application
+    runs-on: ubuntu-latest
+    needs: tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-files
+          path: build/
+
+  # 3) Deploy to Azure Static Web Apps (including PR preview)
+  deploy:
+    name: Build & Deploy to SWA
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      # For simplicity, let SWA Action build and upload according to configuration
+      - name: Build And Deploy
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_MANGO_WAVE_016DEFA00 }}
+          action: upload
+          app_location: "/" # Your source code is in repository root
+          api_location: "" # Leave empty if no Functions
+          output_location: "build" # CRA=build; change to dist if using Vite
+
+  # When PR is merged/closed, notify SWA to close corresponding preview environment
+  close_pr_preview:
+    name: Close SWA Preview (on PR close)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    steps:
+      - uses: Azure/static-web-apps-deploy@v1
+        with:
+          action: close
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_MANGO_WAVE_016DEFA00 }}
+# # GitHub Actions workflow for React app build and test
+# name: Build and Test React App
+
+# # Trigger: Run on every push to any branch
+# on: push
+
+# jobs:
+#   # Job 1: Run Tests
+#   test:
+#     name: Run Tests
+#     runs-on: ubuntu-latest
+
+#     steps:
+#       # Step 1: Checkout the repository code
+#       - name: Checkout code
+#         uses: actions/checkout@v4
+
+#       # Step 2: Setup Node.js environment
+#       - name: Setup Node.js
+#         uses: actions/setup-node@v4
+#         with:
+#           node-version: "18"
+#           cache: "npm"
+
+#       # Step 3: Install project dependencies
+#       - name: Install dependencies
+#         run: npm ci
+
+#       # Step 4: Run tests with Jest and coverage
+#       - name: Run tests
+#         run: npm test -- --coverage --watchAll=false
+
+#       # Step 5: Upload test coverage results
+#       - name: Upload coverage reports
+#         uses: actions/upload-artifact@v4
+#         with:
+#           name: coverage-report
+#           path: coverage/
+
+#   # Job 2: Build Application (only runs if tests pass)
+#   build:
+#     name: Build Application
+#     runs-on: ubuntu-latest
+#     needs: test # This job depends on the 'test' job completing successfully
+
+#     steps:
+#       # Step 1: Checkout the repository code
+#       - name: Checkout code
+#         uses: actions/checkout@v4
+
+#       # Step 2: Setup Node.js environment
+#       - name: Setup Node.js
+#         uses: actions/setup-node@v4
+#         with:
+#           node-version: "18"
+#           cache: "npm"
+
+#       # Step 3: Install project dependencies
+#       - name: Install dependencies
+#         run: npm ci
+
+#       # Step 4: Build the React application
+#       - name: Build application
+#         run: npm run build
+
+#       # Step 5: Upload build artifacts
+#       - name: Upload build artifacts
+#         uses: actions/upload-artifact@v4
+#         with:
+#           name: build-files
+#           path: build/
+
+# ========== COMMENTED OUT WORKFLOWS ==========
+# Previous Docker workflow
+# name: Build the image and push it to Docker Hub
+# on: push
+#
+# jobs:
+#   npm-build:
+#     name: npm build
+#     runs-on: ubuntu-latest
+#
+#     steps:
+#     - name: Checkout code
+#       uses: actions/checkout@v4
+#
+#     - name: Login to Docker Hub
+#       uses: docker/login-action@v3
+#       with:
+#         username: ${{ secrets.DOCKER_HUB_USERNAME }}
+#         password: ${{ secrets.DOCKER_HUB_TOKEN }}
+#
+#     - name: Build image and push to Docker Hub
+#       uses: docker/build-push-action@v5
+#       with:
+#         push: true
+#         tags: ${{ secrets.DOCKER_HUB_USERNAME }}/action-playground:latest
+
+# Previous GitHub Pages deployment workflow (commented out)
+# name: Action Playground CI/CD
+# on: push
+#
+# permissions:
+#   contents: write
+#
+# jobs:
+#   npm-build:
+#     name: npm build
+#     runs-on: ubuntu-latest
+#
+#     steps:
+#     - name: Checkout code
+#       uses: actions/checkout@v4
+#
+#     - name: Install dependencies & build
+#       run: |
+#         npm install
+#         npm run build
+#
+#     - name: Deploy to Github Pages
+#       uses: JamesIves/github-pages-deploy-action@v4
+#       with:
+#         branch: gh-pages
+#         folder: build
